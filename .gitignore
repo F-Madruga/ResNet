@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+lightning_logs/
 
 # C extensions
 *.so
@@ -128,5 +129,5 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-src/example.py
+src/example*.py
 datasets/

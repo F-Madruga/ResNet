@@ -1,9 +1,12 @@
+import torch
 import torch.nn as nn
 from residual_block import ResidualBlock
+import pytorch_lightning as pl
+from torchmetrics import Accuracy
 
 
-class ResNet(nn.Module):
-    def __init__(self, block, layers, image_channels, num_classes):
+class ResNet(pl.LightningModule):
+    def __init__(self, block, layers, image_channels, num_classes, learning_rate):
         super(ResNet, self).__init__()
         self.in_channels = 64
         self.conv1 = nn.Conv2d(
@@ -21,6 +24,8 @@ class ResNet(nn.Module):
             block, layers[3], intermediate_channels=512, stride=2)
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(512 * 4, num_classes)
+        self.learning_rate = learning_rate
+        self.accuracy = Accuracy()
 
     def forward(self, x):
         x = self.conv1(x)
@@ -35,6 +40,35 @@ class ResNet(nn.Module):
         x = x.reshape(x.shape[0], -1)
         x = self.fc(x)
         return x
+    
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+        return optimizer
+    
+    def training_step(self, train_batch, batch_idx):
+        images, labels = train_batch
+        outputs = self(images)
+        criterion = nn.CrossEntropyLoss()
+        loss = criterion(outputs, labels)
+        self.log('train_loss', loss)
+        return loss
+    
+    def validation_step(self, val_batch, batch_idx):
+        images, labels = val_batch
+        outputs = self(images)
+        criterion = nn.CrossEntropyLoss()
+        loss = criterion(outputs, labels)
+        self.log('val_loss', loss)
+
+    def test_step(self, val_batch, batch_idx):
+        images, labels = val_batch
+        outputs = self(images)
+        criterion = nn.CrossEntropyLoss()
+        loss = criterion(outputs, labels)
+        self.accuracy(outputs, labels)
+        self.log('test_loss', loss)
+        self.log('test_acc', self.accuracy)
+
 
     def _make_layer(self, block, num_residual_blocks, intermediate_channels, stride):
         identity_downsample = None
@@ -50,13 +84,13 @@ class ResNet(nn.Module):
         return nn.Sequential(*layers)
 
     @classmethod
-    def ResNet50(cls, img_channels=3, num_classes=1000):
-        return ResNet(ResidualBlock, [3, 4, 6, 3], img_channels, num_classes)
+    def ResNet50(cls, img_channels, num_classes, learning_rate):
+        return ResNet(ResidualBlock, [3, 4, 6, 3], img_channels, num_classes, learning_rate)
 
     @classmethod
-    def ResNet101(cls, img_channels=3, num_classes=1000):
-        return ResNet(ResidualBlock, [3, 4, 23, 3], img_channels, num_classes)
+    def ResNet101(cls, img_channels, num_classes, learning_rate):
+        return ResNet(ResidualBlock, [3, 4, 23, 3], img_channels, num_classes, learning_rate)
 
     @classmethod
-    def ResNet152(cls, img_channels=3, num_classes=1000):
-        return ResNet(ResidualBlock, [3, 8, 36, 3], img_channels, num_classes)
+    def ResNet152(cls, img_channels, num_classes, learning_rate):
+        return ResNet(ResidualBlock, [3, 8, 36, 3], img_channels, num_classes, learning_rate)
