@@ -25,7 +25,9 @@ class ResNet(pl.LightningModule):
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(512 * 4, num_classes)
         self.learning_rate = learning_rate
-        self.accuracy = Accuracy()
+        self.train_accuracy = Accuracy()
+        self.val_accuracy = Accuracy()
+        self.test_accuracy = Accuracy()
 
     def forward(self, x):
         x = self.conv1(x)
@@ -50,7 +52,9 @@ class ResNet(pl.LightningModule):
         outputs = self(images)
         criterion = nn.CrossEntropyLoss()
         loss = criterion(outputs, labels)
+        self.train_accuracy(outputs, labels)
         self.log('train_loss', loss)
+        self.log('train_accuracy', self.train_accuracy, prog_bar=True)
         return loss
     
     def validation_step(self, val_batch, batch_idx):
@@ -58,16 +62,18 @@ class ResNet(pl.LightningModule):
         outputs = self(images)
         criterion = nn.CrossEntropyLoss()
         loss = criterion(outputs, labels)
+        self.val_accuracy(outputs, labels)
         self.log('val_loss', loss)
-
-    def test_step(self, val_batch, batch_idx):
-        images, labels = val_batch
+        self.log('val_accuracy', self.val_accuracy, prog_bar=True)
+    
+    def test_step(self, test_batch, batch_idx):
+        images, labels = test_batch
         outputs = self(images)
         criterion = nn.CrossEntropyLoss()
         loss = criterion(outputs, labels)
-        self.accuracy(outputs, labels)
+        self.test_accuracy(outputs, labels)
         self.log('test_loss', loss)
-        self.log('test_acc', self.accuracy)
+        self.log('test_accuracy', self.test_accuracy)
 
 
     def _make_layer(self, block, num_residual_blocks, intermediate_channels, stride):
