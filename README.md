@@ -1,7 +1,5 @@
 # ResNet
 
-Implementation from [https://www.youtube.com/watch?v=DkNIBBBvcPs](https://www.youtube.com/watch?v=DkNIBBBvcPs)
-
 ResNet paper - [Deep Residual Learning for Image Recognition](https://arxiv.org/abs/1512.03385)
 
 ## Usage
